@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int               @id @default(autoincrement())
+  name         String
+  email        String            @unique
+  phone        String
+  passwordHash String
+  role         String            @default("PASSENGER")
+  isActive     Boolean           @default(true)
+  createdAt    DateTime          @default(now())
+  bookings     Booking[]
+  waitlistEntries WaitlistEntry[]
+}
+
+model Bus {
+  id              Int      @id @default(autoincrement())
+  busNumber       String   @unique
+  name            String
+  operator        String
+  fromCity        String
+  toCity          String
+  departureTime   String
+  arrivalTime     String
+  durationMinutes Int
+  busType         String
+  totalSeats      Int      @default(40)
+  baseFare        Float
+  amenities       String   @default("[]")
+  imageUri        String
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  trips           Trip[]
+  seats           Seat[]
+}
+
+model Trip {
+  id         Int      @id @default(autoincrement())
+  busId      Int
+  travelDate DateTime
+  status     String   @default("SCHEDULED")
+  createdAt  DateTime @default(now())
+  bus        Bus      @relation(fields: [busId], references: [id])
+  bookings   Booking[]
+  waitlistEntries WaitlistEntry[]
+
+  @@unique([busId, travelDate])
+}
+
+model Seat {
+  id            Int     @id @default(autoincrement())
+  busId         Int
+  seatNumber    Int
+  seatType      String  @default("AISLE")
+  isBlocked     Boolean @default(false)
+  bus           Bus     @relation(fields: [busId], references: [id])
+
+  @@unique([busId, seatNumber])
+}
+
+model Booking {
+  id              Int       @id @default(autoincrement())
+  bookingCode     String    @unique
+  userId          Int
+  tripId          Int
+  passengerName   String
+  passengerPhone  String
+  seatNumbers     String
+  seatCount       Int
+  baseFare        Float
+  serviceFee      Float
+  totalFare       Float
+  status          String    @default("CONFIRMED")
+  paymentStatus   String    @default("UNPAID")
+  paymentMethod   String?
+  createdAt       DateTime  @default(now())
+  cancelledAt     DateTime?
+  user            User      @relation(fields: [userId], references: [id])
+  trip            Trip      @relation(fields: [tripId], references: [id])
+}
+
+model WaitlistEntry {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tripId    Int
+  position  Int
+  status    String   @default("WAITING")
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  trip      Trip     @relation(fields: [tripId], references: [id])
+}
+
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?
+  action     String
+  entityType String
+  entityId   Int?
+  details    String   @default("{}")
+  createdAt  DateTime @default(now())
+}
+
+model SiteSetting {
+  id                      Int     @id @default(autoincrement())
+  siteName                String  @default("BusBD")
+  supportEmail            String  @default("support@busbd.com")
+  supportPhone            String  @default("+8801700000000")
+  homepageBannerImageUri  String  @default("")
+  maintenanceMode         Boolean @default(false)
+}
